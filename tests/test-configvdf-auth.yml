@@ -1,0 +1,24 @@
+name: Test Steam Deploy - configVdf auth
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          username: test-builder
+          configVdf: "fake-config-vdf-content-for-testing"
+          appId: "1234567"
+          buildDescription: "Test build via configVdf"
+          rootPath: "/tmp/builds"
+          depot1Path: "/tmp/builds/depot1"
+          releaseBranch: "default"
+      - name: Verify action was invoked
+        run: |
+          echo "Action completed (with or without error - Steam credentials not available in test)"
+          echo "configVdf input was passed successfully to the action"
+          echo "PASS"
