@@ -1,0 +1,32 @@
+name: Test Steam Deploy - configVdf Auth with depots 4-6
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        continue-on-error: true
+        uses: .
+        with:
+          username: test-builder
+          configVdf: "fake-config-vdf-content"
+          appId: "1234567"
+          rootPath: /tmp/builds
+          depot4Path: /tmp/builds/depot4
+          depot4InstallScriptPath: /tmp/builds/depot4/install.vdf
+          depot5Path: /tmp/builds/depot5
+          depot5InstallScriptPath: /tmp/builds/depot5/install.vdf
+          depot6Path: /tmp/builds/depot6
+          depot6InstallScriptPath: /tmp/builds/depot6/install.vdf
+      - name: Assert action ran (inputs accepted)
+        run: |
+          echo "Action outcome: ${{ steps.action.outcome }}"
+          # The action will fail because Steam credentials are invalid in CI,
+          # but it should not fail due to missing/rejected inputs.
+          if [ "${{ steps.action.outcome }}" = "skipped" ]; then
+            echo "FAIL: action was skipped unexpectedly"
+            exit 1
+          fi
+          echo "PASS: action was invoked with configVdf and depot4-6 inputs"

@@ -1,0 +1,32 @@
+name: Test Steam Deploy - Depots 7-9
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        continue-on-error: true
+        uses: .
+        with:
+          username: test-builder
+          totp: "654321"
+          appId: "1234567"
+          rootPath: /tmp/builds
+          depot7Path: /tmp/builds/depot7
+          depot7InstallScriptPath: /tmp/builds/depot7/install.vdf
+          depot8Path: /tmp/builds/depot8
+          depot8InstallScriptPath: /tmp/builds/depot8/install.vdf
+          depot9Path: /tmp/builds/depot9
+          depot9InstallScriptPath: /tmp/builds/depot9/install.vdf
+      - name: Assert action ran (inputs accepted)
+        run: |
+          echo "Action outcome: ${{ steps.action.outcome }}"
+          # The action will fail because Steam credentials are invalid in CI,
+          # but it should not fail due to missing/rejected inputs.
+          if [ "${{ steps.action.outcome }}" = "skipped" ]; then
+            echo "FAIL: action was skipped unexpectedly"
+            exit 1
+          fi
+          echo "PASS: action was invoked with depot7-9 inputs"

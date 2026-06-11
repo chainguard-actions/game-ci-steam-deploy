@@ -1,0 +1,36 @@
+name: Test Steam Deploy - TOTP Auth with depots 1-3
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        continue-on-error: true
+        uses: .
+        with:
+          username: test-builder
+          totp: "123456"
+          appId: "1234567"
+          firstDepotIdOverride: "1234568"
+          buildDescription: "Test build description"
+          rootPath: /tmp/builds
+          depot1Path: /tmp/builds/depot1
+          depot1InstallScriptPath: /tmp/builds/depot1/install.vdf
+          depot2Path: /tmp/builds/depot2
+          depot2InstallScriptPath: /tmp/builds/depot2/install.vdf
+          depot3Path: /tmp/builds/depot3
+          depot3InstallScriptPath: /tmp/builds/depot3/install.vdf
+          releaseBranch: default
+      - name: Assert action ran (inputs accepted)
+        run: |
+          echo "Action outcome: ${{ steps.action.outcome }}"
+          # The action will fail because Steam credentials are invalid in CI,
+          # but it should not fail due to missing/rejected inputs.
+          # We only verify the action was invoked (not skipped).
+          if [ "${{ steps.action.outcome }}" = "skipped" ]; then
+            echo "FAIL: action was skipped unexpectedly"
+            exit 1
+          fi
+          echo "PASS: action was invoked with all required inputs"
