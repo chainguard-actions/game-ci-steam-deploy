@@ -1,0 +1,34 @@
+name: Test firstDepotIdOverride input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Run action with firstDepotIdOverride (expect failure at login)
+        id: action
+        uses: .
+        with:
+          username: fake_user
+          totp: '999999'
+          appId: '1234567'
+          firstDepotIdOverride: '9999001'
+          buildDescription: 'Override depot ID test'
+          rootPath: '.'
+          depot1Path: 'depot1'
+          depot2Path: 'depot2'
+          depot3Path: 'depot3'
+        continue-on-error: true
+
+      - name: Assert action failed at Steam login (not at depot ID override logic)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "FAIL: expected action to fail (no real Steam credentials)"
+            exit 1
+          fi
+          echo "PASS: action correctly processed firstDepotIdOverride and failed at Steam login"

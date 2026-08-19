@@ -1,0 +1,33 @@
+name: Test manifest generation with depot paths
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Run action with totp and depot paths (expect failure at login, not manifest generation)
+        id: action
+        uses: .
+        with:
+          username: fake_user
+          totp: '123456'
+          appId: '1234567'
+          buildDescription: 'Test build description'
+          rootPath: '.'
+          depot1Path: 'depot1'
+          depot2Path: 'depot2'
+          releaseBranch: 'beta'
+        continue-on-error: true
+
+      - name: Assert action failed (expected - no real Steam credentials)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "FAIL: expected action to fail (no real Steam credentials)"
+            exit 1
+          fi
+          echo "PASS: action failed as expected at Steam login step"

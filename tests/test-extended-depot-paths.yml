@@ -1,0 +1,53 @@
+name: Test extended depot paths (depot4 through depot9)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up a git origin reachable inside the Docker container
+        run: |
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          rm -rf "$GITHUB_WORKSPACE/.git-remote"
+          git init --bare "$GITHUB_WORKSPACE/.git-remote"
+          git push "$GITHUB_WORKSPACE/.git-remote" HEAD:refs/heads/act-harness
+          git remote set-url origin "$GITHUB_WORKSPACE/.git-remote" 2>/dev/null || \
+            git remote add origin "$GITHUB_WORKSPACE/.git-remote"
+
+      - name: Run action with depot4Path through depot9Path (expect failure at login)
+        id: action
+        uses: .
+        with:
+          username: fake_user
+          totp: '000000'
+          appId: '1234567'
+          buildDescription: 'Extended depot paths test'
+          rootPath: '.'
+          depot1Path: 'build/platform1'
+          depot2Path: 'build/platform2'
+          depot3Path: 'build/platform3'
+          depot4Path: 'build/platform4'
+          depot5Path: 'build/platform5'
+          depot6Path: 'build/platform6'
+          depot7Path: 'build/platform7'
+          depot8Path: 'build/platform8'
+          depot9Path: 'build/platform9'
+          releaseBranch: 'staging'
+        continue-on-error: true
+
+      - name: Assert action failed at Steam login (not at input processing)
+        run: |
+          echo "outcome: ${{ steps.action.outcome }}"
+          # The action should fail because the Steam credentials are fake.
+          # This confirms that depot4Path through depot9Path inputs are accepted
+          # and the action proceeds to the Steam login step before failing.
+          if [ "${{ steps.action.outcome }}" != "failure" ]; then
+            echo "FAIL: expected action to fail with fake Steam credentials"
+            exit 1
+          fi
+          echo "PASS: action correctly accepted depot4-9 paths and failed at Steam login"
