@@ -13,6 +13,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v3.0.4 | [`v3.0.4`](https://github.com/chainguard-actions/game-ci-steam-deploy/tree/v3.0.4) | [`0a1f7f0`](https://github.com/game-ci/steam-deploy/commit/0a1f7f01cef36bd706b2a609b98ae40d0d4c54e7) |
 | v3.1.0 | [`v3.1.0`](https://github.com/chainguard-actions/game-ci-steam-deploy/tree/v3.1.0) | [`2d5b9ce`](https://github.com/game-ci/steam-deploy/commit/2d5b9ce067156aea9ff346bcb0ec787d79cdd463) |
 | v3.2.0 | [`v3.2.0`](https://github.com/chainguard-actions/game-ci-steam-deploy/tree/v3.2.0) | [`8bd9bac`](https://github.com/game-ci/steam-deploy/commit/8bd9baca6407f9abd210bd1eef3c45f56e12d8d9) |
+| v3.2.1 | [`v3.2.1`](https://github.com/chainguard-actions/game-ci-steam-deploy/tree/v3.2.1) | [`50f6b29`](https://github.com/game-ci/steam-deploy/commit/50f6b29fc64922e19a16d202a88fe199d394b536) |
 
 ## Privacy
 
