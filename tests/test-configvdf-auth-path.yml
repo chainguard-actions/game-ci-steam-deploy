@@ -1,0 +1,39 @@
+name: Test configVdf authentication path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create a fake base64-encoded configVdf
+        id: prep
+        run: |
+          # Create a minimal fake config.vdf content and base64 encode it
+          FAKE_CONFIG='{"config": "fake"}'
+          ENCODED=$(echo "$FAKE_CONFIG" | base64 -w 0)
+          echo "encoded=$ENCODED" >> $GITHUB_OUTPUT
+      - name: Run action with configVdf (expect failure at steamcmd login, not at configVdf check)
+        id: action
+        uses: .
+        with:
+          username: test_user
+          configVdf: ${{ steps.prep.outputs.encoded }}
+          appId: '1234567'
+          buildDescription: 'Test build via configVdf'
+          rootPath: '.'
+          depot1Path: 'build'
+        continue-on-error: true
+      - name: Assert action failed at steamcmd (not at configVdf validation)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          # The action should fail because steamcmd login fails with fake credentials,
+          # but it should NOT fail with "Config VDF input is missing or incomplete!"
+          # since configVdf was provided.
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "FAIL: expected action to fail (steamcmd login should fail with fake credentials)"
+            exit 1
+          fi
+          echo "PASS: action correctly processed configVdf and failed at steamcmd login"

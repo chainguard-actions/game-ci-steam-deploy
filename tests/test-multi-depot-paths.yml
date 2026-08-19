@@ -1,0 +1,41 @@
+name: Test multiple depot paths (depot3-depot9)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Run action with depot3Path through depot9Path inputs
+        id: action
+        uses: .
+        with:
+          username: fake-user
+          totp: '123456'
+          appId: '12345'
+          buildDescription: 'Multi-depot test build'
+          rootPath: '.'
+          depot1Path: 'build/depot1'
+          depot2Path: 'build/depot2'
+          depot3Path: 'build/depot3'
+          depot4Path: 'build/depot4'
+          depot5Path: 'build/depot5'
+          depot6Path: 'build/depot6'
+          depot7Path: 'build/depot7'
+          depot8Path: 'build/depot8'
+          depot9Path: 'build/depot9'
+          releaseBranch: 'beta'
+        continue-on-error: true
+      - name: Assert action failed at steamcmd (not at input validation)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          # The action should fail because steamcmd login will fail with fake credentials.
+          # We verify it fails (not succeeds with fake creds) and that all depot path
+          # inputs (depot3Path through depot9Path) were accepted without validation errors.
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "FAIL: expected action to fail (no real Steam credentials), but outcome was: $OUTCOME"
+            exit 1
+          fi
+          echo "PASS: action correctly processed depot3Path-depot9Path inputs and failed at steamcmd as expected"

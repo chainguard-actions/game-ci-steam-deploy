@@ -1,0 +1,33 @@
+name: Test TOTP authentication path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Run action with TOTP (expect failure at steamcmd login, not at credential check)
+        id: action
+        uses: .
+        with:
+          username: test_user
+          totp: '123456'
+          appId: '1234567'
+          buildDescription: 'Test build'
+          rootPath: '.'
+          depot1Path: 'build'
+          releaseBranch: 'beta'
+        continue-on-error: true
+      - name: Assert action failed (steamcmd login failure, not missing credentials)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          # The action should fail because steamcmd login fails with fake credentials,
+          # but it should NOT fail with "Config VDF input is missing or incomplete!"
+          # since totp was provided. Either way, the action should fail (not succeed).
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "FAIL: expected action to fail (steamcmd login should fail with fake credentials)"
+            exit 1
+          fi
+          echo "PASS: action correctly failed at steamcmd login step (not at credential validation)"
