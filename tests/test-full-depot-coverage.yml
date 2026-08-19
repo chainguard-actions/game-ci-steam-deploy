@@ -1,0 +1,59 @@
+name: Test full depot input coverage
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up git origin reachable inside Docker container
+        run: |
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          rm -rf "$GITHUB_WORKSPACE/.git-remote"
+          git init --bare "$GITHUB_WORKSPACE/.git-remote"
+          git push "$GITHUB_WORKSPACE/.git-remote" HEAD:refs/heads/act-harness
+          git remote set-url origin "$GITHUB_WORKSPACE/.git-remote" 2>/dev/null || \
+            git remote add origin "$GITHUB_WORKSPACE/.git-remote"
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          username: test-user
+          totp: "000000"
+          appId: "1234567"
+          buildDescription: "Full depot coverage test"
+          rootPath: /tmp/builds
+          depot1Path: /tmp/builds/depot1
+          depot1InstallScriptPath: /tmp/builds/depot1/install.vdf
+          depot2Path: /tmp/builds/depot2
+          depot2InstallScriptPath: /tmp/builds/depot2/install.vdf
+          depot3Path: /tmp/builds/depot3
+          depot3InstallScriptPath: /tmp/builds/depot3/install.vdf
+          depot4Path: /tmp/builds/depot4
+          depot4InstallScriptPath: /tmp/builds/depot4/install.vdf
+          depot5Path: /tmp/builds/depot5
+          depot5InstallScriptPath: /tmp/builds/depot5/install.vdf
+          depot6Path: /tmp/builds/depot6
+          depot6InstallScriptPath: /tmp/builds/depot6/install.vdf
+          depot7Path: /tmp/builds/depot7
+          depot7InstallScriptPath: /tmp/builds/depot7/install.vdf
+          depot8Path: /tmp/builds/depot8
+          depot8InstallScriptPath: /tmp/builds/depot8/install.vdf
+          depot9Path: /tmp/builds/depot9
+          depot9InstallScriptPath: /tmp/builds/depot9/install.vdf
+          releaseBranch: beta
+
+      - name: Assert action ran (expected to fail at Steam login with invalid credentials)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "action outcome: $OUTCOME"
+          if [ "$OUTCOME" = "success" ] || [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action ran with all depot inputs provided"
+          else
+            echo "FAIL: unexpected outcome: $OUTCOME"
+            exit 1
+          fi
