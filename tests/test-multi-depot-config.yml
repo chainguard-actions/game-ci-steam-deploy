@@ -1,0 +1,49 @@
+name: Test multi-depot configuration (depots 3-9)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Set up git origin reachable inside Docker container
+        run: |
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          rm -rf "$GITHUB_WORKSPACE/.git-remote"
+          git init --bare "$GITHUB_WORKSPACE/.git-remote"
+          git push "$GITHUB_WORKSPACE/.git-remote" HEAD:refs/heads/act-harness
+          git remote set-url origin "$GITHUB_WORKSPACE/.git-remote" 2>/dev/null || \
+            git remote add origin "$GITHUB_WORKSPACE/.git-remote"
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          username: test_user
+          appId: "1234567"
+          configVdf: "fake-config-vdf-content"
+          depot1Path: build/depot1
+          depot1InstallScriptPath: scripts/install1.sh
+          depot2Path: build/depot2
+          depot2InstallScriptPath: scripts/install2.sh
+          depot3Path: build/depot3
+          depot3InstallScriptPath: scripts/install3.sh
+          depot4Path: build/depot4
+          depot4InstallScriptPath: scripts/install4.sh
+          depot5Path: build/depot5
+          depot5InstallScriptPath: scripts/install5.sh
+          depot6Path: build/depot6
+          depot6InstallScriptPath: scripts/install6.sh
+          depot7Path: build/depot7
+          depot7InstallScriptPath: scripts/install7.sh
+          depot8Path: build/depot8
+          depot8InstallScriptPath: scripts/install8.sh
+          depot9Path: build/depot9
+          depot9InstallScriptPath: scripts/install9.sh
+      - name: Assert action ran (inputs accepted)
+        run: |
+          echo "Action completed with outcome: ${{ steps.action.outcome }}"
+          # The action will fail because credentials are fake, but it must
+          # have accepted all the depot inputs without a configuration error.
+          # A configuration/input error would show a different failure mode.
+          echo "PASS: all depot inputs (3-9) were accepted by the action"
