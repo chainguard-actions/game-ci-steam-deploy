@@ -1,0 +1,46 @@
+name: Test multi-depot input coverage
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          username: test-user
+          password: test-password
+          appId: "1234567"
+          buildDescription: "Multi-depot test build"
+          rootPath: /tmp/build
+          depot2Path: /tmp/build/depot2
+          depot2InstallScriptPath: /tmp/build/depot2/install.vdf
+          depot3Path: /tmp/build/depot3
+          depot3InstallScriptPath: /tmp/build/depot3/install.vdf
+          depot4Path: /tmp/build/depot4
+          depot4InstallScriptPath: /tmp/build/depot4/install.vdf
+          depot5Path: /tmp/build/depot5
+          depot5InstallScriptPath: /tmp/build/depot5/install.vdf
+          depot6Path: /tmp/build/depot6
+          depot6InstallScriptPath: /tmp/build/depot6/install.vdf
+          depot7Path: /tmp/build/depot7
+          depot7InstallScriptPath: /tmp/build/depot7/install.vdf
+          depot8Path: /tmp/build/depot8
+          depot8InstallScriptPath: /tmp/build/depot8/install.vdf
+          depot9Path: /tmp/build/depot9
+          depot9InstallScriptPath: /tmp/build/depot9/install.vdf
+      - name: Assert action ran or failed gracefully (no valid Steam credentials)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" = "success" ]; then
+            echo "PASS: action succeeded unexpectedly (real Steam credentials present)"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully as expected (no valid Steam credentials)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

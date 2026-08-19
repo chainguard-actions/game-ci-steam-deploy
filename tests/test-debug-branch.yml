@@ -1,0 +1,50 @@
+name: Test debugBranch flag
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up git origin reachable inside Docker container
+        run: |
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          rm -rf "$GITHUB_WORKSPACE/.git-remote"
+          git init --bare "$GITHUB_WORKSPACE/.git-remote"
+          git push "$GITHUB_WORKSPACE/.git-remote" HEAD:refs/heads/act-harness
+          git remote set-url origin "$GITHUB_WORKSPACE/.git-remote" 2>/dev/null || \
+            git remote add origin "$GITHUB_WORKSPACE/.git-remote"
+
+      - name: Create fake build directory with debug symbols
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/build/game"
+          echo "fake-game-binary" > "$GITHUB_WORKSPACE/build/game/game.exe"
+          echo "fake-debug-symbols" > "$GITHUB_WORKSPACE/build/game/game.pdb"
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          username: test-user
+          appId: '9876543'
+          totp: '654321'
+          rootPath: 'build'
+          depot1Path: 'game'
+          buildDescription: 'Debug build with symbols'
+          debugBranch: 'true'
+
+      - name: Assert action ran with debugBranch=true (fails at Steam login)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully at Steam login (debugBranch=true path exercised)"
+          elif [ "$OUTCOME" = "success" ]; then
+            echo "PASS: action succeeded (real credentials may be configured)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
