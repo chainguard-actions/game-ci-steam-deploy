@@ -1,0 +1,69 @@
+name: Test multiple depots and optional inputs mapping
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install mock game-ci CLI and steamcmd shims
+        run: bash "$GITHUB_WORKSPACE/tests/fixtures/mock-bin/setup.sh"
+      - id: action
+        uses: .
+        with:
+          username: builder-user
+          password: builder-pass
+          appId: '1000'
+          firstDepotIdOverride: '2000'
+          rootPath: builds
+          depot1Path: windows
+          depot1InstallScriptPath: scripts/win.vdf
+          depot2Path: linux
+          depot4Path: mac
+          depot4InstallScriptPath: scripts/mac.vdf
+          releaseBranch: beta
+          buildDescription: nightly-build-42
+          debugBranch: 'true'
+          extraExclusions: '*.tmp,Docs/*'
+      - name: Assert buildId output
+        env:
+          ACTUAL: ${{ steps.action.outputs.buildId }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ "$ACTUAL" != "987654" ]; then
+            echo "FAIL: expected buildId '987654'"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert depot and option mapping
+        run: |
+          OUT=/tmp/steam-deploy-mock/out
+          cat "$OUT/args.txt"
+          ARGS=" $(tr '\n' ' ' < "$OUT/args.txt")"
+          echo "args: $ARGS"
+          for expected in \
+            " deploy steam builds " \
+            " --appId 1000 " \
+            " --depotId 2000 " \
+            " --depotPath windows " \
+            " --depotInstallScriptPath scripts/win.vdf " \
+            " --depot1Path linux " \
+            " --depot2Path mac " \
+            " --depot2InstallScriptPath scripts/mac.vdf " \
+            " --branch beta " \
+            " --description nightly-build-42 " \
+            " --debugBranch " \
+            " --extraExclusions *.tmp,Docs/* " \
+            " --mode local "; do
+            case "$ARGS" in
+              *"$expected"*) echo "ok: '$expected'" ;;
+              *) echo "FAIL: missing '$expected'"; exit 1 ;;
+            esac
+          done
+          for unexpected in "--depot3Path" "--depot1InstallScriptPath" "--firstDepotIdOverride"; do
+            if grep -qxF -- "$unexpected" "$OUT/args.txt"; then
+              echo "FAIL: unexpected arg '$unexpected'"
+              exit 1
+            fi
+          done
+          echo "PASS"

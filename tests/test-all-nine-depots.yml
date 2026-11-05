@@ -1,0 +1,73 @@
+name: Test all nine depots with install scripts
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install mock game-ci CLI and steamcmd shims
+        run: bash "$GITHUB_WORKSPACE/tests/fixtures/mock-bin/setup.sh"
+      - id: action
+        uses: .
+        with:
+          username: builder-user
+          password: builder-pass
+          appId: '1000'
+          rootPath: builds
+          depot1Path: d1
+          depot1InstallScriptPath: s1.vdf
+          depot2Path: d2
+          depot2InstallScriptPath: s2.vdf
+          depot3Path: d3
+          depot3InstallScriptPath: s3.vdf
+          depot4Path: d4
+          depot4InstallScriptPath: s4.vdf
+          depot5Path: d5
+          depot5InstallScriptPath: s5.vdf
+          depot6Path: d6
+          depot6InstallScriptPath: s6.vdf
+          depot7Path: d7
+          depot7InstallScriptPath: s7.vdf
+          depot8Path: d8
+          depot8InstallScriptPath: s8.vdf
+          depot9Path: d9
+          depot9InstallScriptPath: s9.vdf
+      - name: Assert buildId output
+        env:
+          ACTUAL: ${{ steps.action.outputs.buildId }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ "$ACTUAL" != "987654" ]; then
+            echo "FAIL: expected buildId '987654'"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert all depots mapped (depot2..9 shift to CLI depot1..8)
+        run: |
+          OUT=/tmp/steam-deploy-mock/out
+          cat "$OUT/args.txt"
+          ARGS=" $(tr '\n' ' ' < "$OUT/args.txt")"
+          echo "args: $ARGS"
+          expected_list=(
+            " deploy steam builds "
+            " --appId 1000 "
+            " --depotId 1001 "
+            " --depotPath d1 "
+            " --depotInstallScriptPath s1.vdf "
+          )
+          for i in 2 3 4 5 6 7 8 9; do
+            slot=$((i - 1))
+            expected_list+=(" --depot${slot}Path d${i} " " --depot${slot}InstallScriptPath s${i}.vdf ")
+          done
+          for expected in "${expected_list[@]}"; do
+            case "$ARGS" in
+              *"$expected"*) echo "ok: '$expected'" ;;
+              *) echo "FAIL: missing '$expected'"; exit 1 ;;
+            esac
+          done
+          if grep -qxF -- "--depot9Path" "$OUT/args.txt"; then
+            echo "FAIL: unexpected --depot9Path (only 8 extra slots expected)"
+            exit 1
+          fi
+          echo "PASS"

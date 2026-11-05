@@ -1,0 +1,71 @@
+name: Test basic deploy with username/password and one depot
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install mock game-ci CLI and steamcmd shims
+        run: bash "$GITHUB_WORKSPACE/tests/fixtures/mock-bin/setup.sh"
+      - id: action
+        uses: .
+        with:
+          username: builder-user
+          password: builder-pass
+          appId: '1000'
+          depot1Path: build/linux
+      - name: Assert buildId output
+        env:
+          ACTUAL: ${{ steps.action.outputs.buildId }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ "$ACTUAL" != "987654" ]; then
+            echo "FAIL: expected buildId '987654'"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert CLI arguments
+        run: |
+          OUT=/tmp/steam-deploy-mock/out
+          cat "$OUT/args.txt"
+          ARGS=" $(tr '\n' ' ' < "$OUT/args.txt")"
+          echo "args: $ARGS"
+          for expected in " deploy steam . " " --appId 1000 " " --depotId 1001 " " --depotPath build/linux " " --mode local " " --steamCmdPath "; do
+            case "$ARGS" in
+              *"$expected"*) echo "ok: '$expected'" ;;
+              *) echo "FAIL: missing '$expected'"; exit 1 ;;
+            esac
+          done
+          for unexpected in "--branch" "--description" "--debugBranch" "--extraExclusions" "--depot1Path"; do
+            if grep -qxF -- "$unexpected" "$OUT/args.txt"; then
+              echo "FAIL: unexpected arg '$unexpected'"
+              exit 1
+            fi
+          done
+          if grep -qxF -- "builder-pass" "$OUT/args.txt"; then
+            echo "FAIL: password leaked into argv"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert credentials passed via env and steamcmd cleaned up
+        run: |
+          OUT=/tmp/steam-deploy-mock/out
+          cat "$OUT/env.txt"
+          grep -qxF "STEAM_USERNAME=builder-user" "$OUT/env.txt" || { echo "FAIL: STEAM_USERNAME"; exit 1; }
+          grep -qxF "STEAM_PASSWORD=builder-pass" "$OUT/env.txt" || { echo "FAIL: STEAM_PASSWORD"; exit 1; }
+          grep -qxF "STEAM_TOTP=<unset>" "$OUT/env.txt" || { echo "FAIL: STEAM_TOTP should be unset"; exit 1; }
+          grep -qxF "STEAM_CONFIG_VDF_BASE64=<unset>" "$OUT/env.txt" || { echo "FAIL: STEAM_CONFIG_VDF_BASE64 should be unset"; exit 1; }
+          STEAM_HOME="$(sed -n 's/^STEAM_HOME=//p' "$OUT/env.txt")"
+          echo "STEAM_HOME: $STEAM_HOME"
+          if [ -z "$STEAM_HOME" ] || [ "$STEAM_HOME" = "<unset>" ]; then
+            echo "FAIL: STEAM_HOME not set"
+            exit 1
+          fi
+          ROOT="$(dirname "$(dirname "$STEAM_HOME")")"
+          echo "steamcmd root: $ROOT"
+          if [ -e "$ROOT" ]; then
+            echo "FAIL: steamcmd root $ROOT was not removed"
+            exit 1
+          fi
+          echo "PASS"
